@@ -166,7 +166,7 @@ public class OmMetaGen implements Runnable {
     final StorageSize blockSize = StorageSize.parse(OZONE_SCM_BLOCK_SIZE_DEFAULT);
     final long blockSizeInBytes = (long) blockSize.getUnit().toBytes(blockSize.getValue());
     final Map<Integer, Pipeline> pipelineCache = new HashMap<>();
-    final BatchOperation batch = store.initBatchOperation();
+    BatchOperation batch = store.initBatchOperation();
     for (int i = 0; i < count; i++){
       final String key = UUID.randomUUID().toString();
       final String ozoneKey = metadataManager.getOzoneKey(volume, bucket, key);
@@ -207,8 +207,10 @@ public class OmMetaGen implements Runnable {
           .setModificationTime(Time.now())
           .setDataSize(blockSizeInBytes * magic);
       keyTable.putWithBatch(batch, ozoneKey, builder.build());
-      if (i % 10000 == 0) {
+      if (i % 100000 == 0) {
         store.commitBatchOperation(batch);
+        batch.close();
+        batch = store.initBatchOperation();
         System.out.print('\r');
         System.out.print(i + " / " + count);
       }
