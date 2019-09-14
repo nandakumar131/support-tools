@@ -78,12 +78,16 @@ public class OmMetaGen implements Runnable {
   @Option(names = {"-c", "--count"}, description = "Number of keys to create.")
   private int count;
 
+  @Option(names = {"-l", "--blocks"}, description = "Number of blocks per key.")
+  private int blocks;
+
   public OmMetaGen() {
     this.path = ".";
     this.user = "admin";
     this.volume = "instagram";
     this.bucket = "images";
     this.count = 1000000000;
+    this.blocks = -1;
   }
 
   @Override
@@ -170,8 +174,9 @@ public class OmMetaGen implements Runnable {
     for (int i = 0; i < count; i++){
       final String key = UUID.randomUUID().toString();
       final String ozoneKey = metadataManager.getOzoneKey(volume, bucket, key);
-      final int magic = i % 10;
-      final List<OmKeyLocationInfo> locations = new ArrayList<>(magic);
+      final int magic = i % 5;
+      final int numBlocks = blocks == -1 ? magic : blocks;
+      final List<OmKeyLocationInfo> locations = new ArrayList<>(numBlocks);
       final Pipeline pipeline = pipelineCache.computeIfAbsent(magic,
           id -> Pipeline.newBuilder()
               .setId(PipelineID.randomId())
@@ -186,9 +191,9 @@ public class OmMetaGen implements Runnable {
                 }
               })
               .build());
-      for (int loc = 0; loc < magic; loc++) {
+      for (int loc = 0; loc < numBlocks; loc++) {
         final OmKeyLocationInfo.Builder builder = new OmKeyLocationInfo.Builder()
-            .setBlockID(new BlockID(new ContainerBlockID(magic, UniqueId.next())))
+            .setBlockID(new BlockID(new ContainerBlockID(magic + 1, UniqueId.next())))
             .setLength(blockSizeInBytes)
             .setOffset(0)
             .setPipeline(pipeline);
@@ -205,7 +210,7 @@ public class OmMetaGen implements Runnable {
               new OmKeyLocationInfoGroup(0, locations)))
           .setCreationTime(Time.now())
           .setModificationTime(Time.now())
-          .setDataSize(blockSizeInBytes * magic);
+          .setDataSize(blockSizeInBytes * numBlocks);
       keyTable.putWithBatch(batch, ozoneKey, builder.build());
       if (i % 100000 == 0) {
         store.commitBatchOperation(batch);
