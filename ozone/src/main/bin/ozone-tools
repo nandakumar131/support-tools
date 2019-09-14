@@ -14,4 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-java -jar lib/tools-ozone-**-jar-with-dependencies.jar $@
+SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
+
+java -jar $SCRIPTPATH/../lib/tools-ozone-**-jar-with-dependencies.jar $@
