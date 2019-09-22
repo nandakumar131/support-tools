@@ -38,10 +38,10 @@ import org.apache.hadoop.ozone.om.helpers.OmKeyLocationInfoGroup;
 import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
 import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos.VolumeList;
 import org.apache.hadoop.util.Time;
-import org.apache.hadoop.utils.UniqueId;
-import org.apache.hadoop.utils.db.BatchOperation;
-import org.apache.hadoop.utils.db.DBStore;
-import org.apache.hadoop.utils.db.Table;
+import org.apache.hadoop.hdds.utils.UniqueId;
+import org.apache.hadoop.hdds.utils.db.BatchOperation;
+import org.apache.hadoop.hdds.utils.db.DBStore;
+import org.apache.hadoop.hdds.utils.db.Table;
 import org.preta.tools.ozone.OzoneVersionProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -63,22 +63,28 @@ import static org.apache.hadoop.ozone.OzoneConfigKeys.OZONE_SCM_BLOCK_SIZE_DEFAU
     mixinStandardHelpOptions = true)
 public class OmMetaGen implements Runnable {
 
-  @Option(names = {"-p", "--dbPath"}, description = "Path to generate OzoneManager db.")
+  @Option(names = {"-p", "--dbPath"},
+      description = "Path to generate OzoneManager db.")
   private String path;
 
-  @Option(names = {"-u", "--user"}, description = "Ozone User to create.")
+  @Option(names = {"-u", "--user"},
+      description = "User Name.")
   private String user;
 
-  @Option(names = {"-v", "--volume"}, description = "Ozone Volume to create.")
+  @Option(names = {"-v", "--volume"},
+      description = "Ozone Volume.")
   private String volume;
 
-  @Option(names = {"-b", "--bucket"}, description = "Ozone Bucket to create.")
+  @Option(names = {"-b", "--bucket"},
+      description = "Ozone Bucket.")
   private String bucket;
 
-  @Option(names = {"-c", "--count"}, description = "Number of keys to create.")
+  @Option(names = {"-c", "--count"},
+      description = "Number of keys to create.")
   private int count;
 
-  @Option(names = {"-l", "--blocks"}, description = "Number of blocks per key.")
+  @Option(names = {"-l", "--blocks"},
+      description = "Number of blocks per key.")
   private int blocks;
 
   public OmMetaGen() {

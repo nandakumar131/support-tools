@@ -16,4 +16,4 @@
 
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
-java -jar $SCRIPTPATH/../lib/tools-ozone-**-jar-with-dependencies.jar $@
+java ${OZONE_OPTS} -classpath ${SCRIPTPATH}/../lib/*:${OZONE_CLIENT_CLASSPATH} org.preta.tools.ozone.Main $@

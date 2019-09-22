@@ -14,36 +14,35 @@
  * limitations under the License.
  */
 
-package org.preta.tools.ozone;
+package org.preta.tools.ozone.benchmark;
 
-import org.preta.tools.ozone.benchmark.Benchmark;
-import org.preta.tools.ozone.metagen.MetaGen;
+import org.preta.tools.ozone.OzoneVersionProvider;
 import picocli.CommandLine;
 
-@CommandLine.Command(name="ozone-tools",
-    description = "Ozone Developer Tools.",
+
+
+@CommandLine.Command(name="benchmark",
+    description = "Tool to benchmark Ozone services.",
     versionProvider = OzoneVersionProvider.class,
     subcommands = {
-        MetaGen.class,
-        Benchmark.class
+    BenchmarkOM.class
     },
-    mixinStandardHelpOptions = true,
-    hidden = true)
-public class Main implements Runnable {
+    mixinStandardHelpOptions = true)
+public class Benchmark implements Runnable {
 
   private final CommandLine commandLine;
 
-  private static Main getInstance() {
-    return new Main();
+  private static Benchmark getInstance() {
+    return new Benchmark();
   }
 
-  private Main() {
+  private Benchmark() {
     this.commandLine = new CommandLine(this);
   }
 
   @Override
   public void run() {
-    throw new CommandLine.ParameterException(commandLine, "Missing Command!");
+    throw new CommandLine.ParameterException(commandLine, "Missing SubCommand!");
   }
 
   private int execute(final String[] args) {
@@ -51,7 +50,7 @@ public class Main implements Runnable {
   }
 
   public static void main(final String[] args) {
-    System.exit(Main.getInstance().execute(args));
+    System.exit(Benchmark.getInstance().execute(args));
   }
 
 }
