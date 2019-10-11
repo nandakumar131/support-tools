@@ -36,7 +36,7 @@ import org.apache.hadoop.ozone.om.helpers.OmKeyInfo;
 import org.apache.hadoop.ozone.om.helpers.OmKeyLocationInfo;
 import org.apache.hadoop.ozone.om.helpers.OmKeyLocationInfoGroup;
 import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
-import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos.VolumeList;
+import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos.UserVolumeInfo;
 import org.apache.hadoop.util.Time;
 import org.apache.hadoop.hdds.utils.UniqueId;
 import org.apache.hadoop.hdds.utils.db.BatchOperation;
@@ -132,7 +132,7 @@ public class OmMetaGen implements Runnable {
   }
 
   private void createVolume(final OMMetadataManager metadataManager) throws IOException  {
-    final Table<String, VolumeList> userTable = metadataManager.getUserTable();
+    final Table<String, UserVolumeInfo> userTable = metadataManager.getUserTable();
     final Table<String, OmVolumeArgs> volumeTable = metadataManager.getVolumeTable();
     final String userKey = metadataManager.getUserKey(user);
     final String volumeKey = metadataManager.getVolumeKey(volume);
@@ -150,7 +150,7 @@ public class OmMetaGen implements Runnable {
         volumeList.addAll(userTable.get(userKey).getVolumeNamesList());
       }
       volumeList.add(volume);
-      userTable.put(userKey, VolumeList.newBuilder().addAllVolumeNames(volumeList).build());
+      userTable.put(userKey, UserVolumeInfo.newBuilder().addAllVolumeNames(volumeList).build());
       volumeTable.put(volumeKey, volumeArgs);
     }
   }
