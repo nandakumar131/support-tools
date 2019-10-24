@@ -33,7 +33,7 @@ public class IoStats {
   private final AtomicDouble totalOpenTimeNs = new AtomicDouble(0);
   private final AtomicDouble readElapsedTimeNs = new AtomicDouble(0);
 
-  void incrKeysCreated() {
+  public void incrKeysCreated() {
     keysCreated.incrementAndGet();
   }
 
@@ -49,7 +49,7 @@ public class IoStats {
     writeElapsedTimeNs.addAndGet(deltaNs);
   }
 
-  long getKeysCreated() {
+  public long getKeysCreated() {
     return keysCreated.get();
   }
 
@@ -65,7 +65,7 @@ public class IoStats {
     return writeElapsedTimeNs.get() / (keysCreated.get() * 1_000_000);
   }
 
-  void incrKeysRead() {
+  public void incrKeysRead() {
     keysRead.incrementAndGet();
   }
 
