@@ -27,7 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Command(name = "read",
+@Command(name = "read-write",
     description = "Benchmark OzoneManager Read/Write.",
     mixinStandardHelpOptions = true)
 public class OmReadWriteBenchmark extends AbstractOmBenchmark
@@ -68,6 +68,7 @@ public class OmReadWriteBenchmark extends AbstractOmBenchmark
   private final AtomicLong readKeyNamePointer;
 
   public OmReadWriteBenchmark() {
+    this.user = "admin";
     this.volume = "instagram";
     this.bucket = "images";
     this.keyNamePrefix = "";
@@ -128,5 +129,9 @@ public class OmReadWriteBenchmark extends AbstractOmBenchmark
       readKeyNamePointer.set(0L);
     }
     return keyNamePrefix + "-" + readKeyNamePointer.incrementAndGet();
+  }
+
+  public void printStats() {
+
   }
 }

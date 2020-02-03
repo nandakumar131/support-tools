@@ -68,7 +68,13 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       <dependency>
         <groupId>info.picocli</groupId>
         <artifactId>picocli</artifactId>
+        <version>4.0.3</version>
       </dependency>
+    <dependency>
+      <groupId>org.rocksdb</groupId>
+      <artifactId>rocksdbjni</artifactId>
+      <version>6.0.1</version>
+    </dependency>
   </dependencies>
 
   <build>

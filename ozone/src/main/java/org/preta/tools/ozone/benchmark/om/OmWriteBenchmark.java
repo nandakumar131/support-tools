@@ -17,16 +17,20 @@
 package org.preta.tools.ozone.benchmark.om;
 
 import org.preta.tools.ozone.ReadableTimestampConverter;
+import org.preta.tools.ozone.benchmark.IoStats;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import java.text.DecimalFormat;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-@Command(name = "read",
+@Command(name = "write",
     description = "Benchmark OzoneManager Write.",
     mixinStandardHelpOptions = true)
 public class OmWriteBenchmark extends AbstractOmBenchmark
@@ -61,6 +65,7 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
   private final AtomicLong writeKeyNamePointer;
 
   public OmWriteBenchmark() {
+    this.user = "admin";
     this.volume = "instagram";
     this.bucket = "images";
     this.keyNamePrefix = "";
@@ -72,7 +77,7 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
     try {
       keyNamePrefix += UUID.randomUUID().toString();
       System.out.println("Benchmarking OzoneManager Read.");
-      final long endTimeInNs = System.nanoTime() + (runtime * 1000000000L);
+      final long endTimeInNs = getIoStats().getStartTime() + (runtime * 1000000000L);
       createVolume(user, volume);
       createBucket(volume, bucket);
 
@@ -85,8 +90,13 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
         });
       }
 
+      ScheduledExecutorService statsThread = Executors.newSingleThreadScheduledExecutor();
+      statsThread.scheduleAtFixedRate(this::printStats, 5, 5, TimeUnit.MINUTES);
+
       writeExecutor.shutdown();
       writeExecutor.awaitTermination(Integer.MAX_VALUE, TimeUnit.MINUTES);
+      statsThread.shutdown();
+      statsThread.awaitTermination(Integer.MAX_VALUE, TimeUnit.MINUTES);
     } catch (Exception ex) {
       System.err.println("Encountered Exception:");
       ex.printStackTrace();
@@ -96,4 +106,21 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
   private String getKeyNameToWrite() {
     return keyNamePrefix + "-" + writeKeyNamePointer.incrementAndGet();
   }
+
+  public void printStats() {
+    final DecimalFormat df = new DecimalFormat("#.0000");
+    final IoStats stats = getIoStats();
+    System.out.println("================================================================");
+    System.out.println(LocalDateTime.now());
+    System.out.println("================================================================");
+    System.out.println("Time elapsed: " + (stats.getElapsedTime() / 1000000000) + " sec.");
+    System.out.println("Number of Threads: " + writerThreads);
+    System.out.println("Number of Keys written: " + stats.getKeysCreated());
+    System.out.println("Average Key write time (CPU Time): " + df.format(stats.getAverageKeyWriteCpuTime() / 1000000) + " milliseconds. ");
+    System.out.println("Average Key write time (Real): " + df.format((stats.getAverageKeyWriteCpuTime() / writerThreads) / 1000000 ) + " milliseconds. ");
+    System.out.println("Max Key write time (CPU Time): " + stats.getMaxKeyWriteTime() / 1000000 + " milliseconds.");
+    System.out.println("****************************************************************");
+
+  }
+
 }

@@ -114,5 +114,9 @@ public class OmReadBenchmark  extends AbstractOmBenchmark {
     return keyNames.get(ThreadLocalRandom.current().nextInt(keyNames.size()));
   }
 
+  public void printStats() {
+
+  }
+
 }
 

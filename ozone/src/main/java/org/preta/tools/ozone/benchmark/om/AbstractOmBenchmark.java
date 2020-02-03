@@ -20,6 +20,7 @@ import org.apache.hadoop.conf.StorageSize;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.StorageType;
 import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
+import org.apache.hadoop.hdds.scm.container.common.helpers.ExcludeList;
 import org.apache.hadoop.ipc.Client;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
@@ -35,7 +36,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.preta.tools.ozone.benchmark.IoStats;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Collections;
 
 import static org.apache.hadoop.ozone.OzoneConfigKeys.OZONE_SCM_BLOCK_SIZE_DEFAULT;
@@ -49,29 +49,34 @@ public abstract class AbstractOmBenchmark implements Runnable {
   public void run() {
     try {
       config = new OzoneConfiguration();
-      ioStats = new IoStats();
-      final long omVersion = RPC.getProtocolVersion(OzoneManagerProtocolPB.class);
-      final InetSocketAddress omAddress = OmUtils.getOmAddressForClients(config);
       RPC.setProtocolEngine(config, OzoneManagerProtocolPB.class, ProtobufRpcEngine.class);
       client = new OzoneManagerProtocolClientSideTranslatorPB(
-          RPC.getProxy(OzoneManagerProtocolPB.class, omVersion,
-              omAddress, UserGroupInformation.getCurrentUser(), config,
+          RPC.getProxy(OzoneManagerProtocolPB.class,
+              RPC.getProtocolVersion(OzoneManagerProtocolPB.class),
+              OmUtils.getOmAddressForClients(config),
+              UserGroupInformation.getCurrentUser(), config,
               NetUtils.getDefaultSocketFactory(config),
-              Client.getRpcTimeout(config)), "Ozone Manager Perf Test");
-
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        try {
-          System.err.println("Executing shutdown hook.");
-        } catch (Exception e) {
-          System.err.println("Encountered Exception while benchmarking OzoneManager!");
-          e.printStackTrace();
-        }
-      }));
+              Client.getRpcTimeout(config)),
+          "Ozone Manager Perf Test");
+      addShutdownHook();
+      ioStats = new IoStats();
       execute();
     } catch (IOException ex) {
       System.err.println("Got exception!");
       ex.printStackTrace();
     }
+  }
+
+  private void addShutdownHook() {
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      try {
+        System.out.println("Final Stats!");
+        printStats();
+      } catch (Exception e) {
+        System.err.println("Encountered Exception while benchmarking OzoneManager!");
+        e.printStackTrace();
+      }
+    }));
   }
 
   OzoneConfiguration getConfig() {
@@ -83,6 +88,8 @@ public abstract class AbstractOmBenchmark implements Runnable {
   }
 
   public abstract void execute();
+
+  public abstract void printStats();
 
   void createVolume(String user, String volume) throws IOException {
     try {
@@ -128,12 +135,17 @@ public abstract class AbstractOmBenchmark implements Runnable {
           .setType(HddsProtos.ReplicationType.RATIS)
           .setFactor(HddsProtos.ReplicationFactor.THREE)
           .build();
+      final long startTime = System.nanoTime();
       final OpenKeySession keySession = client.openKey(keyArgs);
+      client.allocateBlock(keyArgs, keySession.getId(), new ExcludeList());
       keyArgs.setLocationInfoList(keySession.getKeyInfo()
           .getLatestVersionLocations().getLocationList());
       final long clientId = keySession.getId();
       keyArgs.setDataSize(blockSizeInBytes);
       client.commitKey(keyArgs, clientId);
+      final long writeTime = System.nanoTime() - startTime;
+      ioStats.addKeyWriteCpuTime(writeTime);
+      ioStats.setMaxKeyWriteTime(writeTime);
       ioStats.incrKeysCreated();
     } catch (IOException ex) {
       System.err.println("Encountered Exception while creating key:");
