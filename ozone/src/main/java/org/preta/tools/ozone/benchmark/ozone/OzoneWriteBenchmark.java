@@ -16,11 +16,13 @@
 
 package org.preta.tools.ozone.benchmark.ozone;
 
+import org.apache.hadoop.ozone.client.OzoneBucket;
 import org.preta.tools.ozone.ReadableTimestampConverter;
 import org.preta.tools.ozone.benchmark.IoStats;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -90,8 +92,15 @@ public class OzoneWriteBenchmark extends AbstractOzoneBenchmark
       ExecutorService writeExecutor = Executors.newFixedThreadPool(writerThreads);
       for (int i = 0; i < this.writerThreads; i++) {
         writeExecutor.submit(() -> {
-          while (System.nanoTime() < endTimeInNs) {
-            writeKey(volume, bucket, getKeyNameToWrite(), getDataToWrite());
+          try {
+            final OzoneBucket ozoneBucket = getClient().getObjectStore()
+                .getVolume(volume).getBucket(bucket);
+            while (System.nanoTime() < endTimeInNs) {
+              writeKey(ozoneBucket, getKeyNameToWrite(), getDataToWrite());
+            }
+          } catch (IOException ex) {
+            System.err.println("Encountered Exception while creating key:");
+            ex.printStackTrace();
           }
         });
       }

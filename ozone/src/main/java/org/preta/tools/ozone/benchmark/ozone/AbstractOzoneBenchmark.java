@@ -70,6 +70,10 @@ public abstract class AbstractOzoneBenchmark implements Runnable {
 
   public abstract void printStats();
 
+  protected OzoneClient getClient() {
+    return client;
+  }
+
   void createVolume(String user, String volume) throws IOException {
     try {
       client.getObjectStore().createVolume(volume, VolumeArgs.newBuilder()
@@ -94,12 +98,10 @@ public abstract class AbstractOzoneBenchmark implements Runnable {
   }
 
 
-  void writeKey(String volume, String bucket, String key, byte[] data) {
+  void writeKey(OzoneBucket bucket, String key, byte[] data) {
     try {
-      final OzoneBucket ozoneBucket = client.getObjectStore()
-          .getVolume(volume).getBucket(bucket);
       final long startTime = System.nanoTime();
-      try (OutputStream stream = ozoneBucket.createKey(key, data.length)) {
+      try (OutputStream stream = bucket.createKey(key, data.length)) {
         stream.write(data);
       }
       final long writeTime = System.nanoTime() - startTime;
