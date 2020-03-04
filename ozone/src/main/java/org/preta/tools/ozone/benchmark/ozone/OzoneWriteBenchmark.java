@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.preta.tools.ozone.benchmark.om;
+package org.preta.tools.ozone.benchmark.ozone;
 
 import org.preta.tools.ozone.ReadableTimestampConverter;
 import org.preta.tools.ozone.benchmark.IoStats;
@@ -27,13 +27,14 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Command(name = "write",
-    description = "Benchmark OzoneManager Write.",
+    description = "Benchmark Ozone Write Performance.",
     mixinStandardHelpOptions = true)
-public class OmWriteBenchmark extends AbstractOmBenchmark
+public class OzoneWriteBenchmark extends AbstractOzoneBenchmark
 {
   @Option(names = {"-d", "--duration"},
       required = true,
@@ -58,17 +59,22 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
       description = "Key Prefix.")
   private String keyNamePrefix;
 
+  @Option(names = {"-s", "--dataSize"},
+      description = "Data size to write.")
+  private int dataSize;
+
   @Option(names = {"-w", "--numWriteThreads"},
       description = "Number of writer threads.")
   private int writerThreads;
 
   private final AtomicLong writeKeyNamePointer;
 
-  public OmWriteBenchmark() {
+  public OzoneWriteBenchmark() {
     this.user = "admin";
     this.volume = "instagram";
     this.bucket = "images";
     this.keyNamePrefix = "";
+    this.dataSize = 10240;
     this.writerThreads = 10;
     this.writeKeyNamePointer = new AtomicLong(0);
   }
@@ -76,7 +82,7 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
   public void execute() {
     try {
       keyNamePrefix += UUID.randomUUID().toString();
-      System.out.println("Benchmarking OzoneManager Write.");
+      System.out.println("Benchmarking Ozone Write.");
       final long endTimeInNs = getIoStats().getStartTime() + (runtime * 1000000000L);
       createVolume(user, volume);
       createBucket(volume, bucket);
@@ -85,14 +91,13 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
       for (int i = 0; i < this.writerThreads; i++) {
         writeExecutor.submit(() -> {
           while (System.nanoTime() < endTimeInNs) {
-            writeKey(volume, bucket, getKeyNameToWrite());
+            writeKey(volume, bucket, getKeyNameToWrite(), getDataToWrite());
           }
         });
       }
 
       ScheduledExecutorService statsThread = Executors.newSingleThreadScheduledExecutor();
       statsThread.scheduleAtFixedRate(this::printStats, 5, 5, TimeUnit.MINUTES);
-
       writeExecutor.shutdown();
       writeExecutor.awaitTermination(Integer.MAX_VALUE, TimeUnit.MINUTES);
       statsThread.shutdown();
@@ -105,6 +110,12 @@ public class OmWriteBenchmark extends AbstractOmBenchmark
 
   private String getKeyNameToWrite() {
     return keyNamePrefix + "-" + writeKeyNamePointer.incrementAndGet();
+  }
+
+  private byte[] getDataToWrite() {
+    final byte[] bytes = new byte[dataSize];
+    ThreadLocalRandom.current().nextBytes(bytes);
+    return bytes;
   }
 
   public void printStats() {

@@ -17,40 +17,35 @@
 package org.preta.tools.ozone.benchmark;
 
 import org.preta.tools.ozone.OzoneVersionProvider;
+import org.preta.tools.ozone.benchmark.ozone.OzoneWriteBenchmark;
 import picocli.CommandLine;
+import picocli.CommandLine.Command;
 
-@CommandLine.Command(name="benchmark",
-    description = "Tool to benchmark Ozone services.",
+@Command(name="ozone",
+    description = "Tool to benchmark Ozone.",
     versionProvider = OzoneVersionProvider.class,
+    mixinStandardHelpOptions = true,
     subcommands = {
-      OzoneBenchmark.class,
-      OmBenchmark.class,
-      RocksDbBenchmark.class
-    },
-    mixinStandardHelpOptions = true)
-public class Benchmark implements Runnable {
+        OzoneWriteBenchmark.class}
+        )
+public class OzoneBenchmark implements Runnable {
 
-  private final CommandLine commandLine;
+  private final CommandLine commandLine = new CommandLine(this);
 
-  private static Benchmark getInstance() {
-    return new Benchmark();
+  private static OzoneBenchmark getInstance() {
+    return new OzoneBenchmark();
   }
 
-  private Benchmark() {
-    this.commandLine = new CommandLine(this);
+  private int execute(String[] args) {
+    return commandLine.execute(args);
   }
 
-  @Override
   public void run() {
     throw new CommandLine.ParameterException(commandLine, "Missing SubCommand!");
   }
 
-  private int execute(final String[] args) {
-    return commandLine.execute(args);
-  }
-
-  public static void main(final String[] args) {
-    System.exit(Benchmark.getInstance().execute(args));
+  public static void main(String[] args) {
+    System.exit(getInstance().execute(args));
   }
 
 }
