@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Nanda kumar
+ * Copyright 2019 Nandakumar
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ public class OmReadBenchmark  extends AbstractOmBenchmark {
 
   private List<String> getInputKeyNames() throws IOException {
     final List<String> keys = new ArrayList<>();
-    final OzoneClient client = OzoneClientFactory.getClient(getConfig());
+    final OzoneClient client = OzoneClientFactory.getRpcClient(getConfig());
     final Iterator<? extends OzoneKey> iter = client.getObjectStore()
         .getVolume(volume)
         .getBucket(bucket)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Nanda kumar
+ * Copyright 2019 Nandakumar
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ public abstract class AbstractOzoneBenchmark implements Runnable {
   public void run() {
     try {
       config = new OzoneConfiguration();
-      client = OzoneClientFactory.getClient(config);
+      client = OzoneClientFactory.getRpcClient(config);
       addShutdownHook();
       ioStats = new IoStats();
       execute();

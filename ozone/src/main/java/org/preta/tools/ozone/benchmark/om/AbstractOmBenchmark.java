@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Nanda kumar
+ * Copyright 2019 Nandakumar
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,19 +19,17 @@ package org.preta.tools.ozone.benchmark.om;
 import org.apache.hadoop.conf.StorageSize;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.StorageType;
-import org.apache.hadoop.hdds.protocol.proto.HddsProtos;
 import org.apache.hadoop.hdds.scm.container.common.helpers.ExcludeList;
-import org.apache.hadoop.ipc.Client;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.ozone.OmUtils;
 import org.apache.hadoop.ozone.OzoneConsts;
 import org.apache.hadoop.ozone.om.exceptions.OMException;
 import org.apache.hadoop.ozone.om.helpers.*;
 import org.apache.hadoop.ozone.om.protocol.OzoneManagerProtocol;
+import org.apache.hadoop.ozone.om.protocolPB.OmTransportFactory;
 import org.apache.hadoop.ozone.om.protocolPB.OzoneManagerProtocolClientSideTranslatorPB;
 import org.apache.hadoop.ozone.om.protocolPB.OzoneManagerProtocolPB;
+import org.apache.hadoop.ozone.security.OzoneTokenIdentifier;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.preta.tools.ozone.benchmark.IoStats;
 
@@ -50,13 +48,11 @@ public abstract class AbstractOmBenchmark implements Runnable {
     try {
       config = new OzoneConfiguration();
       RPC.setProtocolEngine(config, OzoneManagerProtocolPB.class, ProtobufRpcEngine.class);
+
       client = new OzoneManagerProtocolClientSideTranslatorPB(
-          RPC.getProxy(OzoneManagerProtocolPB.class,
-              RPC.getProtocolVersion(OzoneManagerProtocolPB.class),
-              OmUtils.getOmAddressForClients(config),
-              UserGroupInformation.getCurrentUser(), config,
-              NetUtils.getDefaultSocketFactory(config),
-              Client.getRpcTimeout(config)),
+              OmTransportFactory.create(config,
+                      UserGroupInformation.getCurrentUser(),
+                      new OzoneTokenIdentifier().getOmServiceId()),
           "Ozone Manager Perf Test");
       addShutdownHook();
       ioStats = new IoStats();
@@ -132,8 +128,6 @@ public abstract class AbstractOmBenchmark implements Runnable {
           .setBucketName(bucket)
           .setKeyName(key)
           .setDataSize(blockSizeInBytes)
-          .setType(HddsProtos.ReplicationType.RATIS)
-          .setFactor(HddsProtos.ReplicationFactor.THREE)
           .build();
       final long startTime = System.nanoTime();
       final OpenKeySession keySession = client.openKey(keyArgs);
@@ -159,8 +153,6 @@ public abstract class AbstractOmBenchmark implements Runnable {
           .setVolumeName(volume)
           .setBucketName(bucket)
           .setKeyName(key)
-          .setType(HddsProtos.ReplicationType.RATIS)
-          .setFactor(HddsProtos.ReplicationFactor.THREE)
           .build();
       final OmKeyInfo keyInfo = client.lookupKey(keyArgs);
       assert keyInfo != null;

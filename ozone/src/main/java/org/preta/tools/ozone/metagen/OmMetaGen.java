@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Nanda kumar
+ * Copyright 2019 Nandakumar
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,40 +22,34 @@ import org.apache.hadoop.hdds.client.ContainerBlockID;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.DatanodeDetails;
 import org.apache.hadoop.hdds.protocol.StorageType;
-import org.apache.hadoop.hdds.protocol.proto.HddsProtos.ReplicationFactor;
-import org.apache.hadoop.hdds.protocol.proto.HddsProtos.ReplicationType;
 import org.apache.hadoop.hdds.scm.pipeline.Pipeline;
 import org.apache.hadoop.hdds.scm.pipeline.PipelineID;
+import org.apache.hadoop.hdds.utils.UniqueId;
+import org.apache.hadoop.hdds.utils.db.BatchOperation;
+import org.apache.hadoop.hdds.utils.db.DBStore;
+import org.apache.hadoop.hdds.utils.db.Table;
 import org.apache.hadoop.ozone.OzoneAcl;
 import org.apache.hadoop.ozone.OzoneConsts;
 import org.apache.hadoop.ozone.om.OMConfigKeys;
 import org.apache.hadoop.ozone.om.OMMetadataManager;
 import org.apache.hadoop.ozone.om.OmMetadataManagerImpl;
-import org.apache.hadoop.ozone.om.helpers.OmBucketInfo;
-import org.apache.hadoop.ozone.om.helpers.OmKeyInfo;
-import org.apache.hadoop.ozone.om.helpers.OmKeyLocationInfo;
-import org.apache.hadoop.ozone.om.helpers.OmKeyLocationInfoGroup;
-import org.apache.hadoop.ozone.om.helpers.OmVolumeArgs;
-import org.apache.hadoop.ozone.protocol.proto.OzoneManagerProtocolProtos.UserVolumeInfo;
+import org.apache.hadoop.ozone.om.helpers.*;
+import org.apache.hadoop.ozone.storage.proto.OzoneManagerStorageProtos;
 import org.apache.hadoop.util.Time;
-import org.apache.hadoop.hdds.utils.UniqueId;
-import org.apache.hadoop.hdds.utils.db.BatchOperation;
-import org.apache.hadoop.hdds.utils.db.DBStore;
-import org.apache.hadoop.hdds.utils.db.Table;
 import org.preta.tools.ozone.OzoneVersionProvider;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.hadoop.ozone.OzoneConfigKeys.OZONE_SCM_BLOCK_SIZE_DEFAULT;
+import static org.apache.hadoop.ozone.om.helpers.BucketLayout.OBJECT_STORE;
+
 
 @Command(name="om",
     description = "Generate OzoneManager metadata.",
@@ -112,9 +106,25 @@ public class OmMetaGen implements Runnable {
         }
       }));
       try {
+        final String[] buckets = bucket.split(",");
         createVolume(metadataManager);
-        createBucket(metadataManager);
-        createKeys(metadataManager);
+        createBuckets(metadataManager, buckets);
+
+        ExecutorService executor = Executors.newFixedThreadPool(buckets.length);
+        for (final String bucketName : buckets) {
+          executor.submit(() -> {
+            try {
+              createKeys(metadataManager, bucketName);
+            } catch (IOException ex) {
+              System.err.println("Encountered Exception while creating key:");
+              ex.printStackTrace();
+            }
+          });
+          Thread.sleep(10000);
+        }
+        executor.shutdown();
+        boolean exitCode = executor.awaitTermination(Integer.MAX_VALUE, TimeUnit.MINUTES);
+        System.out.println("Exit Code: " + exitCode);
       } finally {
         System.out.println("Stopping OmMetaGen.");
         metadataManager.stop();
@@ -132,7 +142,7 @@ public class OmMetaGen implements Runnable {
   }
 
   private void createVolume(final OMMetadataManager metadataManager) throws IOException  {
-    final Table<String, UserVolumeInfo> userTable = metadataManager.getUserTable();
+    final Table<String, OzoneManagerStorageProtos.PersistedUserVolumeInfo> userTable = metadataManager.getUserTable();
     final Table<String, OmVolumeArgs> volumeTable = metadataManager.getVolumeTable();
     final String userKey = metadataManager.getUserKey(user);
     final String volumeKey = metadataManager.getVolumeKey(volume);
@@ -142,7 +152,7 @@ public class OmMetaGen implements Runnable {
         .setOwnerName(user)
         .setQuotaInBytes(OzoneConsts.MAX_QUOTA_IN_BYTES)
         .setCreationTime(System.currentTimeMillis())
-        .addOzoneAcls(OzoneAcl.toProtobuf(OzoneAcl.parseAcl("user:"+user+":rw")))
+        .addOzoneAcls(OzoneAcl.parseAcl("user:"+user+":rw"))
         .build();
     if (!volumeTable.isExist(volumeKey)) {
       final List<String> volumeList = new ArrayList<>();
@@ -150,44 +160,44 @@ public class OmMetaGen implements Runnable {
         volumeList.addAll(userTable.get(userKey).getVolumeNamesList());
       }
       volumeList.add(volume);
-      userTable.put(userKey, UserVolumeInfo.newBuilder().addAllVolumeNames(volumeList).build());
+      userTable.put(userKey, OzoneManagerStorageProtos.PersistedUserVolumeInfo.newBuilder().addAllVolumeNames(volumeList).build());
       volumeTable.put(volumeKey, volumeArgs);
     }
   }
 
-  private void createBucket(final OMMetadataManager metadataManager) throws IOException {
+  private void createBuckets(final OMMetadataManager metadataManager, final String[] buckets) throws IOException {
     final Table<String, OmBucketInfo> bucketTable = metadataManager.getBucketTable();
-    final String bucketKey = metadataManager.getBucketKey(volume, bucket);
-    final OmBucketInfo bucketInfo = OmBucketInfo.newBuilder()
-        .setVolumeName(volume)
-        .setBucketName(bucket)
-        .setIsVersionEnabled(false)
-        .setStorageType(StorageType.DISK)
-        .setAcls(Collections.singletonList(OzoneAcl.parseAcl("user:"+user+":rw")))
-        .build();
-    if (!bucketTable.isExist(bucketKey)) {
-      bucketTable.put(bucketKey, bucketInfo);
+    for (String b : buckets) {
+      final String bucketKey = metadataManager.getBucketKey(volume, b);
+      final OmBucketInfo bucketInfo = OmBucketInfo.newBuilder()
+              .setVolumeName(volume)
+              .setBucketName(b)
+              .setIsVersionEnabled(false)
+              .setStorageType(StorageType.DISK)
+              .setAcls(Collections.singletonList(OzoneAcl.parseAcl("user:" + user + ":rw")))
+              .build();
+      if (!bucketTable.isExist(bucketKey)) {
+        bucketTable.put(bucketKey, bucketInfo);
+      }
     }
   }
 
-  private void createKeys(OMMetadataManager metadataManager) throws IOException {
+  private void createKeys(OMMetadataManager metadataManager, final String bucketName) throws IOException {
     final DBStore store = metadataManager.getStore();
-    final Table<String, OmKeyInfo> keyTable = metadataManager.getKeyTable();
+    final Table<String, OmKeyInfo> keyTable = metadataManager.getKeyTable(OBJECT_STORE);
     final StorageSize blockSize = StorageSize.parse(OZONE_SCM_BLOCK_SIZE_DEFAULT);
     final long blockSizeInBytes = (long) blockSize.getUnit().toBytes(blockSize.getValue());
     final Map<Integer, Pipeline> pipelineCache = new HashMap<>();
     BatchOperation batch = store.initBatchOperation();
     for (int i = 0; i < count; i++){
       final String key = UUID.randomUUID().toString();
-      final String ozoneKey = metadataManager.getOzoneKey(volume, bucket, key);
+      final String ozoneKey = metadataManager.getOzoneKey(volume, bucketName, key);
       final int magic = i % 5;
       final int numBlocks = blocks == -1 ? magic : blocks;
       final List<OmKeyLocationInfo> locations = new ArrayList<>(numBlocks);
       final Pipeline pipeline = pipelineCache.computeIfAbsent(magic,
           id -> Pipeline.newBuilder()
               .setId(PipelineID.randomId())
-              .setType(ReplicationType.RATIS)
-              .setFactor(ReplicationFactor.THREE)
               .setState(Pipeline.PipelineState.OPEN)
               .setNodes(new ArrayList<DatanodeDetails>() {
                 {
@@ -207,10 +217,8 @@ public class OmMetaGen implements Runnable {
       }
       final OmKeyInfo.Builder builder = new OmKeyInfo.Builder()
           .setVolumeName(volume)
-          .setBucketName(bucket)
+          .setBucketName(bucketName)
           .setKeyName(key)
-          .setReplicationType(ReplicationType.RATIS)
-          .setReplicationFactor(ReplicationFactor.THREE)
           .setAcls(Collections.singletonList(OzoneAcl.parseAcl("user:"+user+":rw")))
           .setOmKeyLocationInfos(Collections.singletonList(
               new OmKeyLocationInfoGroup(0, locations)))
@@ -222,8 +230,13 @@ public class OmMetaGen implements Runnable {
         store.commitBatchOperation(batch);
         batch.close();
         batch = store.initBatchOperation();
-        System.out.print('\r');
-        System.out.print(i + " / " + count);
+        //System.out.print('\r');
+        System.out.print("Objects written by " + Thread.currentThread().getName() + " is "+ i);
+      }
+      //if (i % 10000000 == 0) {
+      if (i % 100000 == 0) {
+        System.out.println("Created checkpoint at : " +
+                metadataManager.getStore().getCheckpoint(true).getCheckpointLocation());
       }
     }
     store.commitBatchOperation(batch);
@@ -247,7 +260,7 @@ public class OmMetaGen implements Runnable {
     DatanodeDetails.Port restPort = DatanodeDetails.newPort(
         DatanodeDetails.Port.Name.REST, 0);
     DatanodeDetails.Builder builder = DatanodeDetails.newBuilder();
-    builder.setUuid(UUID.randomUUID().toString())
+    builder.setUuid(UUID.randomUUID())
         .setHostName("localhost")
         .setIpAddress(ipAddress)
         .addPort(containerPort)

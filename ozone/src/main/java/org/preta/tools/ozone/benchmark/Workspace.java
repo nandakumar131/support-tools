@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package org.preta.tools.ozone;
+package org.preta.tools.ozone.benchmark;
 
-import org.apache.hadoop.ozone.util.OzoneVersionInfo;
-import picocli.CommandLine;
+public class Workspace {
+    public static void main(String[] args) {
 
-public class OzoneVersionProvider implements CommandLine.IVersionProvider {
-
-  @Override
-  public String[] getVersion() {
-    return new String[] {
-        OzoneVersionInfo.OZONE_VERSION_INFO.getBuildVersion()
-    };
-  }
+        final String buckets = "sample,test,new";
+        for (String bucket : buckets.split(",")) {
+            System.out.println(bucket);
+        }
+    }
 }
