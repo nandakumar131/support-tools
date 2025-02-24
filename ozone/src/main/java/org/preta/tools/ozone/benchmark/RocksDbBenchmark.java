@@ -17,7 +17,6 @@
 package org.preta.tools.ozone.benchmark;
 
 import org.preta.tools.ozone.OzoneVersionProvider;
-import org.preta.tools.ozone.benchmark.rocksdb.RocksDbWriteBenchmark;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
@@ -26,7 +25,6 @@ import picocli.CommandLine.Command;
     versionProvider = OzoneVersionProvider.class,
     mixinStandardHelpOptions = true,
     subcommands = {
-      RocksDbWriteBenchmark.class
     })
 public class RocksDbBenchmark implements Runnable {
 

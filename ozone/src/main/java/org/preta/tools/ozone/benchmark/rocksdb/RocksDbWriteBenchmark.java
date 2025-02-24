@@ -56,7 +56,7 @@ import static org.rocksdb.TickerType.STALL_MICROS;
 @CommandLine.Command(name = "write",
     description = "Benchmark RocksDB Write.",
     mixinStandardHelpOptions = true)
-public class RocksDbWriteBenchmark implements Runnable {
+public class RocksDBWriteBenchmark implements Runnable {
 
   @CommandLine.Option(names = {"-d", "--duration"},
       required = true,
@@ -109,7 +109,7 @@ public class RocksDbWriteBenchmark implements Runnable {
   private int deltaFlushCount = 0;
   private long deltaFlushTime = 0;
 
-  public RocksDbWriteBenchmark() {
+  public RocksDBWriteBenchmark() {
     this.path = "/tmp/test.db";
     this.keyNamePrefix = "/instagram/images/";
     this.writerThreads = 10;

@@ -33,6 +33,7 @@ import org.apache.hadoop.ozone.OzoneConsts;
 import org.apache.hadoop.ozone.om.OMConfigKeys;
 import org.apache.hadoop.ozone.om.OMMetadataManager;
 import org.apache.hadoop.ozone.om.OmMetadataManagerImpl;
+// TODO: Replace this.
 import org.apache.hadoop.ozone.om.helpers.*;
 import org.apache.hadoop.ozone.storage.proto.OzoneManagerStorageProtos;
 import org.apache.hadoop.util.Time;
@@ -95,7 +96,7 @@ public class OmMetaGen implements Runnable {
     try {
       System.out.println("Starting OmMetaGen.");
       final OzoneConfiguration conf = getConfiguration();
-      final OMMetadataManager metadataManager = new OmMetadataManagerImpl(conf);
+      final OMMetadataManager metadataManager = new OmMetadataManagerImpl(conf, null);
       Runtime.getRuntime().addShutdownHook(new Thread(() -> {
         try {
           System.err.println("Executing shutdown hook.");
