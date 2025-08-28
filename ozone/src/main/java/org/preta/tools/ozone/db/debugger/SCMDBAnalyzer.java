@@ -20,12 +20,14 @@ public class SCMDBAnalyzer {
   OzoneConfiguration conf;
   SCMMetadataStoreImpl metadataStore;
   Map<Long, Long> containers;
+  Map<Long, String> containerState;
 
   public SCMDBAnalyzer(String dbPath) throws IOException {
     this.conf = new OzoneConfiguration();
     conf.set(ScmConfigKeys.OZONE_SCM_DB_DIRS, dbPath);
     this.metadataStore = new SCMMetadataStoreImpl(conf);
     this.containers = new HashMap<>();
+    this.containerState = new HashMap<>();
   }
 
 
@@ -37,22 +39,23 @@ public class SCMDBAnalyzer {
     while (containerIter.hasNext()) {
       Table.KeyValue<ContainerID, ContainerInfo> data = containerIter.next();
       ContainerInfo containerInfo = data.getValue();
-      owner.add(containerInfo.getOwner());
-      System.out.println(containerInfo);
+      containerState.put(containerInfo.getContainerID(), containerInfo.getState().toString());
+      //owner.add(containerInfo.getOwner());
+      //System.out.println(containerInfo);
     }
     containerTable.close();
-   System.out.println("============================");
-    System.out.println("Owner List");
-   for (String o : owner) {
-      System.out.println("Owner: " + o);
-    }
-    System.out.println("============================");
+   //System.out.println("============================");
+    //System.out.println("Owner List");
+   //for (String o : owner) {
+      //System.out.println("Owner: " + o);
+    //}
+    //System.out.println("============================");
 
  }
 
   public void run() throws Exception {
 
-    System.out.println("=========Containers from Delete Txn Table=============");
+    System.out.println("=========Pending Delete Txn on SCM=============");
 
 
     long totalTxnCount = 0;
@@ -78,16 +81,17 @@ public class SCMDBAnalyzer {
     }
 
     deleteTxTable.close();
-
+    System.out.println("Container ID, Container State, Block Pending Deletion ");
+    System.out.println("=====================================================");
     for (Long id : containers.keySet()) {
-      System.out.println("Container ID: " + id + ", Block Count: " + containers.get(id));
+      System.out.println(id + ", " + containerState.get(id) + ", " + containers.get(id));
     }
 
     System.out.println("===========================================");
     System.out.println("Total delete Txn: " + totalTxnCount);
     System.out.println("Total number of blocks: " + totalBlockCount);
-    System.out.println("Total delete Txn with negative retry count: " + negativeTxnCount);
-    System.out.println("Total number of blocks with negative retry count: " + negativeBlockCount);
+    System.out.println("Total delete Txn with max retry count: " + negativeTxnCount);
+    System.out.println("Total number of blocks with max retry count: " + negativeBlockCount);
     System.out.println("===========================================");
 
   }
@@ -96,7 +100,7 @@ public class SCMDBAnalyzer {
   public static void main(String[] args) throws Exception {
     SCMDBAnalyzer scmdbAnalyzer = new SCMDBAnalyzer(args[0]);
     scmdbAnalyzer.dumpContainerDB();
-    //scmdbAnalyzer.run();
+    scmdbAnalyzer.run();
 
   }
 }

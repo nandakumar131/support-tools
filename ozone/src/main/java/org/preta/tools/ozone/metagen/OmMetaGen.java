@@ -151,7 +151,6 @@ public class OmMetaGen implements Runnable {
         .setVolume(volume)
         .setAdminName(user)
         .setOwnerName(user)
-        .setQuotaInBytes(OzoneConsts.MAX_QUOTA_IN_BYTES)
         .setCreationTime(System.currentTimeMillis())
         .addOzoneAcls(OzoneAcl.parseAcl("user:"+user+":rw"))
         .build();

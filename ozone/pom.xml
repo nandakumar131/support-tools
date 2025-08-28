@@ -30,8 +30,9 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
 
   <properties>
     <hadoop.version>3.3.3</hadoop.version>
-    <hdds.version>1.4.0.7.1.9.1-SNAPSHOT</hdds.version>
-    <ozone.version>1.4.0.7.1.9.1-SNAPSHOT</ozone.version>
+    <hdds.version>1.4.0</hdds.version>
+    <ozone.version>1.4.0</ozone.version>
+    <ratis.version>2.5.1</ratis.version>
   </properties>
 
   <dependencies>
@@ -69,6 +70,31 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       <groupId>org.apache.ozone</groupId>
       <artifactId>ozone-client</artifactId>
       <version>${ozone.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>ratis-server-api</artifactId>
+      <groupId>org.apache.ratis</groupId>
+      <version>${ratis.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>ratis-proto</artifactId>
+      <groupId>org.apache.ratis</groupId>
+      <version>${ratis.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>ratis-grpc</artifactId>
+      <groupId>org.apache.ratis</groupId>
+      <version>${ratis.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ratis</groupId>
+      <artifactId>ratis-tools</artifactId>
+      <version>${ratis.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ratis</groupId>
+      <artifactId>ratis-common</artifactId>
+      <version>${ratis.version}</version>
     </dependency>
       <dependency>
         <groupId>info.picocli</groupId>

@@ -22,7 +22,6 @@ import org.apache.hadoop.hdds.protocol.StorageType;
 import org.apache.hadoop.hdds.scm.container.common.helpers.ExcludeList;
 import org.apache.hadoop.ipc.ProtobufRpcEngine;
 import org.apache.hadoop.ipc.RPC;
-import org.apache.hadoop.ozone.OzoneConsts;
 import org.apache.hadoop.ozone.om.exceptions.OMException;
 import org.apache.hadoop.ozone.om.helpers.*;
 import org.apache.hadoop.ozone.om.protocol.OzoneManagerProtocol;
@@ -93,7 +92,6 @@ public abstract class AbstractOmBenchmark implements Runnable {
           .setVolume(volume)
           .setAdminName(user)
           .setOwnerName(user)
-          .setQuotaInBytes(OzoneConsts.MAX_QUOTA_IN_BYTES)
           .build());
     } catch (OMException ex) {
       if (ex.getResult() != OMException.ResultCodes.VOLUME_ALREADY_EXISTS) {
